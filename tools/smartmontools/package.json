@@ -1,0 +1,7 @@
+{
+  "Version": "7.5",
+  "Source": "https://github.com/smartmontools/smartmontools/releases/download/RELEASE_7_5/smartmontools-7.5.win32-setup.exe",
+  "PackageSHA256": "896337fcc253220614cf8cdbd5cf2321c5aa326a37a04160a672a281e6104c70",
+  "Method": "Portable extraction; no installer or service executed",
+  "SmartctlSHA256": "B5DB94E5082C042BE44994B7A4FA8F7B5C8E713B2AB1C9A560D8F7A7995EA27D"
+}
