@@ -8,22 +8,11 @@ Use the **kebab-case `.bat` launchers in this folder**. Their implementations an
 shared helpers live in `powershell/`. Windows 10/11 and Windows PowerShell 5.1
 are the baseline; no additional PowerShell modules need installing.
 
-The Windows API bridges live in `powershell/native/` as separate source files.
-Keep that folder with the scripts; each bridge is compiled in memory when needed.
-They handle saved Wi-Fi profiles, the temporary keep-awake request, and notifying
-Windows when PATH changes. No separate build step is required.
-
-## Coding conventions
-
-Source lines are limited to 80 characters, including indentation.
-`.editorconfig` records the formatting rules.
+Keep the `powershell/` folder with the launchers. No build step is required.
 
 ## First run
 
-Double-click `add-powershell-to-path.bat` to update User PATH directly.
-It directly adds `%SystemRoot%\System32\WindowsPowerShell\v1.0`, the built-in
-Windows PowerShell folder. It checks that `powershell.exe` exists there and
-avoids duplicate entries. There is no drive scan or search-root prompt.
+If `powershell.exe` is missing from PATH, run `add-powershell-to-path.bat` to add the built-in Windows PowerShell folder to User PATH.
 
 For command-line setup with no prompts:
 
@@ -32,10 +21,7 @@ add-powershell-to-path.bat -Scope User -WhatIf
 add-powershell-to-path.bat -Scope User
 ```
 
-The setup launcher uses the built-in Windows PowerShell path to bootstrap.
-Every other launcher calls `powershell.exe` directly through PATH; none searches
-for an interpreter. The tools target Windows PowerShell for consistent access
-to Windows modules. To add a separately installed PowerShell 7, use
+To add a separately installed PowerShell 7, use
 `add-app-to-path.bat "C:\Program Files\PowerShell\7\pwsh.exe"`.
 
 Open a **new terminal** after changing PATH. Existing terminals and parent
@@ -49,30 +35,9 @@ add-app-to-path.bat "C:\path\to\windows-toolbox"
 
 ## Arguments or prompts
 
-Each interactive prompt is preceded by a short explanation of the operation.
-Console results also start with a description of what is being displayed.
-All console tables and lists use compact spacing: at most one blank line between
-records or sections. A single blank line separates the heading from its results
-and separates result blocks from any following notes.
-`-AsJson` returns JSON without these descriptions.
-Long-running console operations show their current step or a progress indicator.
-Drive-health checks show the administrator request, active drive/SMART stage,
-elapsed time, and completed-drive count. The administrator worker sends progress
-back to the original terminal. Keep-awake shows elapsed and remaining time.
-Unknown-duration queries use an activity indicator, not a made-up time
-percentage. Progress is cleared on completion and omitted from JSON output.
-Prompts ask only for missing required input. Windows-key and saved Wi-Fi tools
-display results immediately; hosts opens its standard file.
-PowerShell PATH setup defaults to User scope. Optional settings keep their
-defaults: use flags such as `-AsJson`, `-Scope`, `-Destination`, or
-`-Collision` to change them.
-Wi-Fi defaults to all saved profiles; use `-Name` to select one. Hashing prompts
-securely for the password. File organization prompts for its source folder.
-Launchers pause before closing when used without arguments so results remain
-readable, except the hosts editor. Supplying arguments skips the final pause.
-Parameters use PowerShell-style names, such as `-Path`.
-Paths containing spaces must be quoted. For detailed help, run this from
-PowerShell, substituting the implementation filename for the tool you need:
+Double-click a launcher for interactive use, or pass arguments to skip prompts for supplied values. Paths containing spaces must be quoted. Use `-AsJson` for structured output.
+
+For detailed help, substitute the tool's PowerShell filename:
 
 ```powershell
 Get-Help .\powershell\add-app-to-path.ps1 -Detailed
@@ -115,10 +80,7 @@ find-port-process.bat -Port 53 -AsJson
 Run `get-system-info.bat` without arguments to display information immediately.
 It reports physical and logical CPU counts, RAM modules, graphics drivers,
 physical disks, fixed-volume free space, Windows uptime, and batteries.
-Console output uses compact sections, readable labels, inline units, and battery
-status descriptions. Hardware-dependent data may be unavailable; missing values
-are explained rather than displayed as blank fields. Use `-Verbose` for provider
-errors; JSON retains the original structured fields and diagnostic details.
+Hardware-dependent readings may be unavailable. Use `-Verbose` for provider errors or `-AsJson` for structured readings.
 Battery health is full-charge capacity divided by design capacity when the
 firmware exposes valid capacities, and can exceed 100% on some batteries.
 Storage/RAM sizes use GiB. The tool does not install drivers or change settings.
@@ -139,9 +101,7 @@ get-system-info.bat -BatteryReport -WhatIf
 
 With no arguments, prevent idle sleep until stopped with Ctrl+C or by closing
 the script. `-Minutes` sets a time limit; zero means until stopped.
-`-KeepDisplayOn` also prevents the display from turning off. The request belongs
-to a dedicated thread and is released on exit. Saved power-plan settings are
-unchanged. Explicit sleep, lid-close policies, automatic locking, and critical
+`-KeepDisplayOn` also prevents the display from turning off. Saved power-plan settings are unchanged. Explicit sleep, lid-close policies, automatic locking, and critical
 battery actions are not overridden. This tool supports `-WhatIf`.
 
 ```bat
@@ -161,60 +121,11 @@ with reallocated sectors. Windows' wear counter can also differ from the NVMe
 SMART percentage-used value. The console labels the sources explicitly and
 displays `SMART health: Not checked` when no direct query has succeeded.
 
-Direct SMART reading uses [smartmontools](https://www.smartmontools.org/)
-`smartctl.exe` with JSON support. Version 7.5 is provided in
-`tools/smartmontools` beside the launchers, extracted from the official release
-after checking the installer SHA-256 against the WinGet manifest. Keep that
-folder when moving the collection. It is resolved relative to the script,
-including in an administrator session; it does not rely on the current directory
-or account. No background service or system-wide installer was run. Lookup also
-supports the earlier per-user portable setup, a standard Program Files install,
-PATH, or an explicit `-SmartctlPath`. Upstream license and source links are in
-`tools/smartmontools`. If no reader is found, the tool stops with an actionable
-error; Windows-only reporting requires an explicit `-WindowsOnly`.
+Direct SMART queries use the bundled `smartctl.exe` in `tools/smartmontools`; keep that folder with the launchers. Use `-SmartctlPath` for another installation or `-WindowsOnly` to skip direct SMART checks.
 
-The BAT launcher requests administrator access through Windows UAC when needed
-so USB SMART queries can succeed. Results return to the original window; JSON
-output is preserved. `-WindowsOnly` skips elevation and direct SMART queries.
-When invoking the PS1 directly, use `-Elevate` or an administrator terminal.
-Serial-number matching maps a drive to its Windows physical-drive path.
-When the mapping is ambiguous, the tool refuses the SMART query. Device
-autodetection is used; some USB bridges and RAID controllers require specialized
-options that this wrapper does not yet expose.
+The BAT launcher requests administrator access when needed. When running the PS1 directly, use `-Elevate` or an administrator terminal. Some USB bridges and RAID controllers may not support the available query modes.
 
-The SMART assessment flags nonzero ATA reallocated (05), pending (C5), and
-uncorrectable (C6) sector counts even when the device's overall SMART check
-passes. NVMe data includes percentage used, estimated endurance remaining,
-critical warnings, media errors, temperature, and powered-on hours when reported.
-This is a focused assessment, not a full reimplementation of CrystalDiskInfo's
-vendor-specific rules. Estimated endurance remaining is not a broad guarantee
-of drive health or time remaining.
-
-`Estimated health` uses the NVMe endurance value for supported SSDs. For HDDs
-identified by their reported rotation rate, it applies the six published default
-weights and penalty limits in [Hard Disk Sentinel's documented data-field
-method](https://www.hdsentinel.com/help/en/52_cond.html), rounded to one decimal.
-The method name is shown beside the percentage. All six inputs are required;
-missing inputs or failed SMART reads leave the estimate unavailable. A failed
-overall SMART health check overrides the estimate to 0%. This is a transparent
-software score, not a manufacturer-reported lifespan or a promise to match
-Sentinel's vendor-specific modes, custom offsets, or current internal rules.
-The separate `Caution`/`Bad` assessment remains visible beside the score.
-
-When available, Windows readings include current temperature, rated maximum
-temperature, estimated wear used, power-on hours, and uncorrected read/write
-errors. A rated maximum of zero is treated as an unsupported placeholder.
-Missing readings remain `Not reported`, not zero. A reported wear value
-of 100% means the estimated wear limit has been reached; it is not a percentage
-of remaining life. Some drives/controllers expose no counters, and some require
-an administrator terminal. Access failures keep the basic drive status visible;
-use `-Verbose` for technical details. JSON keeps numeric readings, nulls for
-missing fields, and counter-access diagnostics.
-
-This is a read-only report, not a repair tool or prediction of remaining life.
-`Healthy` means the current status reported by Windows. Reported warnings do
-not turn a successful query into a script failure. Unknown device IDs and failed
-drive enumeration return exit code 1.
+The report distinguishes Windows status, SMART warnings, and estimated health. NVMe estimates reflect reported endurance; supported HDD estimates use [Hard Disk Sentinel's documented method](https://www.hdsentinel.com/help/en/52_cond.html). Missing inputs leave the estimate unavailable. These are read-only observations, not a prediction of remaining life or a repair operation.
 
 ```bat
 get-drive-health.bat
@@ -244,7 +155,7 @@ auto-organize-files.bat -Directory "C:\Downloads" -Destination "D:\Sorted" -What
 
 Run `add-app-to-path.bat` and enter an app executable or its folder. Adding an
 executable adds its containing folder, so you can run the app by command name
-from any terminal. There is no action menu. You can also supply the path directly.
+from any terminal. You can also supply the path directly.
 Executable inputs support `.exe`, `.com`, `.bat`, and `.cmd`; a folder input is
 useful for a directory containing multiple tools. The folder is added once,
 without replacing existing PATH entries or changing the registry value type.
@@ -264,8 +175,7 @@ add-app-to-path.bat -ShowPath -Scope Machine
 ### Add an app to startup
 
 Run `add-app-to-startup.bat` and enter an executable. It adds the app to the
-current user's Run registry key so it opens automatically at sign-in. There is
-no action menu. The entry name defaults to the executable's name; `-Name` and
+current user's Run registry key so it opens automatically at sign-in. The entry name defaults to the executable's name; `-Name` and
 `-Arguments` are optional. Executable paths are quoted, and existing entries
 with the same name are not overwritten. `-Scope Machine` adds the app for all
 users and requires an administrator terminal. To start a script, supply its
@@ -284,8 +194,6 @@ add-app-to-startup.bat -List
 add-app-to-startup.bat -List -AsJson
 ```
 
-Empty startup lists are serialized as `[]` in JSON mode.
-
 ### Information and passwords
 
 Firmware OEM keys may be absent on digital-license systems; they are not
@@ -295,10 +203,7 @@ The hash tool generates legacy `$P$` PHPass hashes with UTF-8 passwords and a
 cryptographic random salt for compatibility. Use WordPress's own password tools
 for normal account management.
 
-Wi-Fi retrieval uses the native WLAN API. Profile names and passwords containing
-colons, commas, Unicode, or exclamation marks are preserved. Run as administrator
-if Windows restricts access to cleartext keys. Open/enterprise profiles may not
-have a stored shared key. The tool creates no temporary credential files.
+Run Wi-Fi retrieval as administrator if Windows restricts access to saved keys. Open and enterprise profiles may not have a stored shared key.
 
 ```bat
 get-wifi-passwords.bat -All -AsJson
@@ -313,16 +218,7 @@ inside Notepad remain under your control. Information tools return success as
 Wi-Fi retrieval also returns 1 when a selected profile's key cannot be retrieved;
 profiles without a shared key, such as open networks, are reported normally.
 
-## Original names
-
-| Previous file | Replacement launcher |
-| --- | --- |
-| `AutoSortFiles.bat` | `auto-organize-files.bat` |
-| `GetWindowsProductKey.bat` | `get-windows-product-key.bat` |
-| `pathset.bat` | `add-app-to-path.bat` |
-| `startman.ps1` | `add-app-to-startup.bat` |
-| `WifiPasswordReveal-exp.bat` | `get-wifi-passwords.bat` |
-| `wphash.ps1` | `new-wordpress-hash.bat` |
+## Credits
 
 Historical source credits: the previous Wi-Fi batch file credited Elias
 Bachaalany / Batchography, and the previous startup script credited GitHub
